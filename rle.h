@@ -10,8 +10,11 @@
 ****************************************************************************
 *   UPDATES
 *
-*   $Id: rle.h,v 1.1.1.1 2004/05/03 03:56:49 michael Exp $
+*   $Id: rle.h,v 1.2 2006/09/10 05:08:36 michael Exp $
 *   $Log: rle.h,v $
+*   Revision 1.2  2006/09/10 05:08:36  michael
+*   Add prototypes for variant packbits algorithm.
+*
 *   Revision 1.1.1.1  2004/05/03 03:56:49  michael
 *   Initial version
 *
@@ -43,7 +46,13 @@
 /***************************************************************************
 *                               PROTOTYPES
 ***************************************************************************/
-int RleEncodeFile(char *inFile, char *outFile);	/* encode inFile */
-int RleDecodeFile(char *inFile, char *outFile);	/* decode inFile*/
+
+/* traditional RLE encodeing/decoding */
+int RleEncodeFile(char *inFile, char *outFile);
+int RleDecodeFile(char *inFile, char *outFile);
+
+/* variant of packbits RLE encodeing/decoding */
+int VPackBitsEncodeFile(char *inFile, char *outFile);
+int VPackBitsDecodeFile(char *inFile, char *outFile);
 
 #endif  /* ndef _RLE_H_ */

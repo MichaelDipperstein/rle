@@ -1,15 +1,25 @@
 DESCRIPTION
 -----------
-This archive contains a simple and readable ANSI C implementation of
-run length encoding and decoding (RLE).  This implementation is not intended
-to be the best, fastest, smallest, or any other performance related adjective.
+This archive contains simple and readable ANSI C implementations of
+run length encoding and decoding (RLE).  It includes two implementations, a
+conventional implementation and a variant of the packbits method.  These
+implementations are not intended to be the best, fastest, smallest, or any
+other performance related adjective.
 
-The version of encoding used by this library only provides a run length if
-the last two symbols are matching.  This method avoids the need to include
-run lengths for runs of only 1 symbol.  It also avoids the need for escape
-characters.
+The conventional version of encoding provides a run length for runs of two
+or more symbols.  If the encoded file contains a run of two or more symbols,
+the run will be encoded as two identical symbols followed by a byte with the
+length of the rest of the run.  This method incurs a one byte penalty for
+every two byte run.
+
+The packbit variant will encode data as blocks of symbols.  Each block starts
+with a one byte count.  If the count is non-negative, count + 1 symbols are
+copied verbatim.  If the count is negative, the symbol that follows occurs
+in a run 2 - count long.  This method incurs a one byte penalty for every
+block of up symbols that is not a run.
 
 More information on run length encoding may be found at:
+http://michael.dipperstein.com/rle
 http://www.datacompression.info/RLE.shtml
 
 FILES
@@ -24,6 +34,8 @@ rle.c           - Library of run length encoding and decoding routines.
 rle.h           - Header containing prototypes for library functions.
 sample.c        - Demonstration of how to use run length encoding library
                   functions
+vpackbits.c     - Implementation of a variant of the packbits encoding and
+                  decoding algorithm
 
 BUILDING
 --------
@@ -37,9 +49,10 @@ Usage: sample <options>
 options:
   -c : Encode input file to output file.
   -d : Decode input file to output file.
+  -v : Use variant of packbits algorithm.
   -i <filename> : Name of input file.
   -o <filename> : Name of output file.
-  -h|?  : Print out command line options.
+  -h | ?  : Print out command line options.
 
 -c      Compress the specified input file (see -i) then using run length
         encoding, writing the encoded results to the specified output file
@@ -48,6 +61,9 @@ options:
 -d      Decompresses the specified input file (see -i) writing the results to
         the specified output file (see -o).  Only files compressed by this
         program may be decompressed.
+
+-v      Compress/Decompress using a packbit variant.  Yields better compression
+        in some instances.
 
 -i <filename>   The name of the input file.  There is no valid usage of this
                 program without a specified input file.
@@ -59,11 +75,13 @@ options:
 HISTORY
 -------
 04/30/04  - Initial Release
+09/08/06  - Added packbits variant
 
 TODO
 ----
-- Add an opition to very the size of the symbol being encoded.
+- Add an option to very the size of the symbol being encoded.
 
 AUTHOR
 ------
-Michael Dipperstein (mdipper@cs.ucsb.edu)
+Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
+http://michael.dipperstein.com

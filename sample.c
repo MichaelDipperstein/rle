@@ -9,8 +9,11 @@
 ****************************************************************************
 *   UPDATES
 *
-*   $Id: sample.c,v 1.1.1.1 2004/05/03 03:56:49 michael Exp $
+*   $Id: sample.c,v 1.2 2006/09/10 05:11:22 michael Exp $
 *   $Log: sample.c,v $
+*   Revision 1.2  2006/09/10 05:11:22  michael
+*   Add sample usage for variant packbits functions.
+*
 *   Revision 1.1.1.1  2004/05/03 03:56:49  michael
 *   Initial version
 *
@@ -55,6 +58,11 @@ typedef enum
 } MODES;
 
 /***************************************************************************
+*                               PROTOTYPES
+***************************************************************************/
+char *RemovePath(char *fullPath);
+
+/***************************************************************************
 *                                FUNCTIONS
 ***************************************************************************/
 
@@ -74,14 +82,16 @@ int main(int argc, char *argv[])
     int opt;
     char *inFile, *outFile;  /* name of input & output files */
     MODES mode;
+    unsigned char usePackBits;
 
     /* initialize data */
     inFile = NULL;
     outFile = NULL;
     mode = ENCODE;
+    usePackBits = 0;
 
     /* parse command line */
-    while ((opt = getopt(argc, argv, "cdtni:o:h?")) != -1)
+    while ((opt = getopt(argc, argv, "cdvi:o:h?")) != -1)
     {
         switch(opt)
         {
@@ -91,6 +101,10 @@ int main(int argc, char *argv[])
 
             case 'd':       /* decompression mode */
                 mode = DECODE;
+                break;
+
+            case 'v':       /* use packbits variant */
+                usePackBits = 1;
                 break;
 
             case 'i':       /* input file name */
@@ -151,10 +165,11 @@ int main(int argc, char *argv[])
 
             case 'h':
             case '?':
-                printf("Usage: sample <options>\n\n");
+                printf("Usage: %s <options>\n\n", RemovePath(argv[0]));
                 printf("options:\n");
                 printf("  -c : Encode input file to output file.\n");
                 printf("  -d : Decode input file to output file.\n");
+                printf("  -v : Use variant of packbits algorithm.\n");
                 printf("  -i <filename> : Name of input file.\n");
                 printf("  -o <filename> : Name of output file.\n");
                 printf("  -h | ?  : Print out command line options.\n\n");
@@ -192,14 +207,61 @@ int main(int argc, char *argv[])
     /* we have valid parameters encode or decode */
     if (mode == ENCODE)
     {
-        RleEncodeFile(inFile, outFile);
+        if (usePackBits)
+        {
+            VPackBitsEncodeFile(inFile, outFile);
+        }
+        else
+        {
+            RleEncodeFile(inFile, outFile);
+        }
     }
     else
     {
-        RleDecodeFile(inFile, outFile);
+        if (usePackBits)
+        {
+            VPackBitsDecodeFile(inFile, outFile);
+        }
+        else
+        {
+            RleDecodeFile(inFile, outFile);
+        }
     }
 
     free(inFile);
     free(outFile);
     return EXIT_SUCCESS;
+}
+
+/****************************************************************************
+*   Function   : RemovePath
+*   Description: This is function accepts a pointer to the name of a file
+*                along with path information and returns a pointer to the
+*                character that is not part of the path.
+*   Parameters : fullPath - pointer to an array of characters containing
+*                           a file name and possible path modifiers.
+*   Effects    : None
+*   Returned   : Returns a pointer to the first character after any path
+*                information.
+****************************************************************************/
+char *RemovePath(char *fullPath)
+{
+    int i;
+    char *start, *tmp;                          /* start of file name */
+    const char delim[3] = {'\\', '/', ':'};     /* path deliminators */
+
+    start = fullPath;
+
+    /* find the first character after all file path delimiters */
+    for (i = 0; i < 3; i++)
+    {
+        tmp = strrchr(start, delim[i]);
+
+        if (tmp != NULL)
+        {
+            start = tmp + 1;
+        }
+    }
+
+    return start;
 }
