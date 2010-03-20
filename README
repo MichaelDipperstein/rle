@@ -24,11 +24,11 @@ http://www.datacompression.info/RLE.shtml
 
 FILES
 -----
-COPYING         - Rules for copying and distributing LGPL software
-getopt.c        - LGPL version of getopt source from GNU project
-getopt.h        - LGPL version of getopt headers from GNU project
-LICENSE         - GNU Lesser General Public License
+COPYING         - Rules for copying and distributing GPL software
+COPYING.LESSER  - Rules for copying and distributing LGPL software
 Makefile        - makefile for this project (assumes gcc compiler and GNU make)
+optlist.c       - Source code for GetOptlist function and supporting functions
+optlist.h       - Header file to be included by code using the optlist library
 README          - this file
 rle.c           - Library of run length encoding and decoding routines.
 rle.h           - Header containing prototypes for library functions.
@@ -76,6 +76,10 @@ HISTORY
 -------
 04/30/04  - Initial Release
 09/08/06  - Added packbits variant
+08/30/07  - Explicitly licensed under LGPL version 3.
+          - Replaces getopt() with optlist library.
+          - Corrects bug in packbits style compression that occurs with
+            maximum length runs.
 
 TODO
 ----

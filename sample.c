@@ -9,8 +9,12 @@
 ****************************************************************************
 *   UPDATES
 *
-*   $Id: sample.c,v 1.2 2006/09/10 05:11:22 michael Exp $
+*   $Id: sample.c,v 1.3 2007/09/08 17:11:44 michael Exp $
 *   $Log: sample.c,v $
+*   Revision 1.3  2007/09/08 17:11:44  michael
+*   Replace getopt with optlist.
+*   Changes required for LGPL v3.
+*
 *   Revision 1.2  2006/09/10 05:11:22  michael
 *   Add sample usage for variant packbits functions.
 *
@@ -21,21 +25,23 @@
 ****************************************************************************
 *
 * SAMPLE: Sample usage of Run Length Encoding Library
-* Copyright (C) 2004 by Michael Dipperstein (mdipper@cs.ucsb.edu)
+* Copyright (C) 2004, 2006-2007 by
+*       Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
 *
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Lesser General Public
-* License as published by the Free Software Foundation; either
-* version 2.1 of the License, or (at your option) any later version.
+* This file is part of the RLE library.
 *
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Lesser General Public License for more details.
+* The RLE library is free software; you can redistribute it and/or modify
+* it under the terms of the GNU Lesser General Public License as published
+* by the Free Software Foundation; either version 3 of the License, or (at
+* your option) any later version.
 *
-* You should have received a copy of the GNU Lesser General Public
-* License along with this library; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+* The RLE library is distributed in the hope that it will be useful, but
+* WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+* General Public License for more details.
+*
+* You should have received a copy of the GNU Lesser General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 ***************************************************************************/
 
@@ -45,7 +51,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "getopt.h"
+#include "optlist.h"
 #include "rle.h"
 
 /***************************************************************************
@@ -79,7 +85,7 @@ char *RemovePath(char *fullPath);
 ****************************************************************************/
 int main(int argc, char *argv[])
 {
-    int opt;
+    option_t *optList, *thisOpt;
     char *inFile, *outFile;  /* name of input & output files */
     MODES mode;
     unsigned char usePackBits;
@@ -91,9 +97,12 @@ int main(int argc, char *argv[])
     usePackBits = 0;
 
     /* parse command line */
-    while ((opt = getopt(argc, argv, "cdvi:o:h?")) != -1)
+    optList = GetOptList(argc, argv, "cdvi:o:h?");
+    thisOpt = optList;
+
+    while (thisOpt != NULL)
     {
-        switch(opt)
+        switch(thisOpt->option)
         {
             case 'c':       /* compression mode */
                 mode = ENCODE;
@@ -118,9 +127,11 @@ int main(int argc, char *argv[])
                         free(outFile);
                     }
 
+                    FreeOptList(optList);
                     exit(EXIT_FAILURE);
                 }
-                else if ((inFile = (char *)malloc(strlen(optarg) + 1)) == NULL)
+                else if ((inFile =
+                    (char *)malloc(strlen(thisOpt->argument) + 1)) == NULL)
                 {
                     perror("Memory allocation");
 
@@ -129,10 +140,11 @@ int main(int argc, char *argv[])
                         free(outFile);
                     }
 
+                    FreeOptList(optList);
                     exit(EXIT_FAILURE);
                 }
 
-                strcpy(inFile, optarg);
+                strcpy(inFile, thisOpt->argument);
                 break;
 
             case 'o':       /* output file name */
@@ -146,9 +158,11 @@ int main(int argc, char *argv[])
                         free(inFile);
                     }
 
+                    FreeOptList(optList);
                     exit(EXIT_FAILURE);
                 }
-                else if ((outFile = (char *)malloc(strlen(optarg) + 1)) == NULL)
+                else if ((outFile =
+                    (char *)malloc(strlen(thisOpt->argument) + 1)) == NULL)
                 {
                     perror("Memory allocation");
 
@@ -157,10 +171,11 @@ int main(int argc, char *argv[])
                         free(inFile);
                     }
 
+                    FreeOptList(optList);
                     exit(EXIT_FAILURE);
                 }
 
-                strcpy(outFile, optarg);
+                strcpy(outFile, thisOpt->argument);
                 break;
 
             case 'h':
@@ -174,8 +189,14 @@ int main(int argc, char *argv[])
                 printf("  -o <filename> : Name of output file.\n");
                 printf("  -h | ?  : Print out command line options.\n\n");
                 printf("Default: sample -c\n");
+
+                FreeOptList(optList);
                 return(EXIT_SUCCESS);
         }
+
+        optList = thisOpt->next;
+        free(thisOpt);
+        thisOpt = optList;
     }
 
     /* validate command line */

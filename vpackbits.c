@@ -17,8 +17,16 @@
 ****************************************************************************
 *   UPDATES
 *
-*   $Id: vpackbits.c,v 1.2 2006/09/20 13:13:30 michael Exp $
+*   $Id: vpackbits.c,v 1.4 2007/09/08 17:12:27 michael Exp $
 *   $Log: vpackbits.c,v $
+*   Revision 1.4  2007/09/08 17:12:27  michael
+*   Corrected error decoding maximum length runs.
+*   Replace getopt with optlist.
+*   Changes required for LGPL v3.
+*
+*   Revision 1.3  2007/02/13 05:29:43  michael
+*   trimmed spaces.
+*
 *   Revision 1.2  2006/09/20 13:13:30  michael
 *   Minor modifications to look more like description on my web page.
 *
@@ -27,22 +35,24 @@
 *
 ****************************************************************************
 *
-* RLE: An ANSI C Run Length Encoding/Decoding Routines
-* Copyright (C) 2004 by Michael Dipperstein (mdipper@cs.ucsb.edu)
+* VPackBits: ANSI C PackBits Style Run Length Encoding/Decoding Routines
+* Copyright (C) 2006-2007 by
+*       Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
 *
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Lesser General Public
-* License as published by the Free Software Foundation; either
-* version 2.1 of the License, or (at your option) any later version.
+* This file is part of the RLE library.
 *
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Lesser General Public License for more details.
+* The RLE library is free software; you can redistribute it and/or modify
+* it under the terms of the GNU Lesser General Public License as published
+* by the Free Software Foundation; either version 3 of the License, or (at
+* your option) any later version.
 *
-* You should have received a copy of the GNU Lesser General Public
-* License along with this library; if not, write to the Free Software
-* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+* The RLE library is distributed in the hope that it will be useful, but
+* WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+* General Public License for more details.
+*
+* You should have received a copy of the GNU Lesser General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 ***************************************************************************/
 
@@ -59,7 +69,7 @@
 #define TRUE        1
 
 #define MIN_RUN     3                   /* minimum run length to encode */
-#define MAX_RUN     128 + MIN_RUN       /* maximum run length to encode */
+#define MAX_RUN     (128 + MIN_RUN - 1) /* maximum run length to encode */
 #define MAX_COPY    128                 /* maximum characters to copy */
 
 /* maximum that can be read before copy block is written */
@@ -147,7 +157,7 @@ int VPackBitsEncodeFile(char *inFile, char *outFile)
                         fpOut);
                 }
 
-                
+
                 /* determine run length (MIN_RUN so far) */
                 count = MIN_RUN;
 
@@ -162,10 +172,10 @@ int VPackBitsEncodeFile(char *inFile, char *outFile)
                 }
 
                 /* write out encoded run length and run symbol */
-                fputc((char)((MIN_RUN - 1) - (int)(count)), fpOut);
+                fputc((char)((int)(MIN_RUN - 1) - (int)(count)), fpOut);
                 fputc(currChar, fpOut);
 
-                if (nextChar != EOF)
+                if ((nextChar != EOF) && (count != MAX_RUN))
                 {
                     /* make run breaker start of next buffer */
                     charBuf[0] = nextChar;
@@ -173,7 +183,7 @@ int VPackBitsEncodeFile(char *inFile, char *outFile)
                 }
                 else
                 {
-                    /* file ends in a run */
+                    /* file or max run ends in a run */
                     count = 0;
                 }
             }
@@ -186,7 +196,7 @@ int VPackBitsEncodeFile(char *inFile, char *outFile)
             /* write out buffer */
             fputc(MAX_COPY - 1, fpOut);
             fwrite(charBuf, sizeof(unsigned char), MAX_COPY, fpOut);
-            
+
             /* start a new buffer */
             count = MAX_READ - MAX_COPY;
 
@@ -214,7 +224,7 @@ int VPackBitsEncodeFile(char *inFile, char *outFile)
             /* we read more than the maximum for a single copy buffer */
             fputc(MAX_COPY - 1, fpOut);
             fwrite(charBuf, sizeof(unsigned char), MAX_COPY, fpOut);
-            
+
             /* write out remainder */
             count -= MAX_COPY;
             fputc(count - 1, fpOut);
@@ -272,13 +282,13 @@ int VPackBitsDecodeFile(char *inFile, char *outFile)
     /* read input until there's nothing left */
     while ((countChar = fgetc(fpIn)) != EOF)
     {
-        countChar = (char)countChar;    /* force siqn extension */
+        countChar = (char)countChar;    /* force sign extension */
 
         if (countChar < 0)
         {
             /* we have a run write out  2 - countChar copies */
             countChar = (MIN_RUN - 1) - countChar;
-            
+
             if (EOF == (currChar = fgetc(fpIn)))
             {
                 fprintf(stderr, "Run block is too short!\n");

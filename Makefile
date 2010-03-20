@@ -1,11 +1,17 @@
 ############################################################################
 # Makefile for run length encode/decode library and sample program
 #
-#   $Id: Makefile,v 1.2 2006/09/10 05:07:18 michael Exp $
+#   $Id: Makefile,v 1.4 2007/09/08 17:07:26 michael Exp $
 #   $Log: Makefile,v $
+#   Revision 1.4  2007/09/08 17:07:26  michael
+#   Replace getopt with optlist.
+#
+#   Revision 1.3  2007/07/16 02:19:49  michael
+#   Use -pedantic option when compiling.
+#
 #   Revision 1.2  2006/09/10 05:07:18  michael
 #   Add packbits variant
-#   Compile compress/decompress and getopt functions as libraries.
+#   Compile compress/decompress and optlist functions as libraries.
 #
 #   Revision 1.1.1.1  2004/05/03 03:56:49  michael
 #   Initial version
@@ -14,11 +20,11 @@
 ############################################################################
 CC = gcc
 LD = gcc
-CFLAGS = -O3 -Wall -ansi -c
+CFLAGS = -O3 -Wall -pedantic -ansi -c
 LDFLAGS = -O3 -o
 
 # libraries
-LIBS = -L. -lrle -lgetopt
+LIBS = -L. -lrle -loptlist
 
 # Treat NT and non-NT windows the same
 ifeq ($(OS),Windows_NT)
@@ -35,10 +41,10 @@ endif
 
 all:		sample$(EXE)
 
-sample$(EXE):	sample.o librle.a libgetopt.a
+sample$(EXE):	sample.o librle.a liboptlist.a
 		$(LD) $< $(LIBS) $(LDFLAGS) $@
 
-sample.o:	sample.c rle.h getopt.h
+sample.o:	sample.c rle.h optlist.h
 		$(CC) $(CFLAGS) $<
 
 librle.a:	rle.o vpackbits.o
@@ -51,11 +57,11 @@ rle.o:		rle.c
 vpackbits.o:	vpackbits.c
 		$(CC) $(CFLAGS) $<
 
-libgetopt.a:	getopt.o
+liboptlist.a:	optlist.o
 		ar crv $@ $^
 		ranlib $@
 
-getopt.o:	getopt.c getopt.h
+optlist.o:	optlist.c optlist.h
 		$(CC) $(CFLAGS) $<
 
 clean:
