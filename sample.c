@@ -7,25 +7,9 @@
 *   Date    : April 30, 2004
 *
 ****************************************************************************
-*   UPDATES
-*
-*   $Id: sample.c,v 1.3 2007/09/08 17:11:44 michael Exp $
-*   $Log: sample.c,v $
-*   Revision 1.3  2007/09/08 17:11:44  michael
-*   Replace getopt with optlist.
-*   Changes required for LGPL v3.
-*
-*   Revision 1.2  2006/09/10 05:11:22  michael
-*   Add sample usage for variant packbits functions.
-*
-*   Revision 1.1.1.1  2004/05/03 03:56:49  michael
-*   Initial version
-*
-*
-****************************************************************************
 *
 * SAMPLE: Sample usage of Run Length Encoding Library
-* Copyright (C) 2004, 2006-2007 by
+* Copyright (C) 2004, 2006-2007, 2015 by
 *       Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
 *
 * This file is part of the RLE library.
@@ -50,7 +34,7 @@
 ***************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <errno.h>
 #include "optlist.h"
 #include "rle.h"
 
@@ -59,20 +43,24 @@
 ***************************************************************************/
 typedef enum
 {
-    ENCODE,
-    DECODE
-} MODES;
+    mode_none = 0,
+    mode_encode_normal = 1,
+    mode_decode_normal = (1 << 1),
+    mode_packbits = (1 << 2),
+    mode_encode_packbits = (1 << 2) | 1,
+    mode_decode_packbits = (1 << 2) | (1 << 1)
+} mode_t;
 
 /***************************************************************************
 *                               PROTOTYPES
 ***************************************************************************/
-char *RemovePath(char *fullPath);
+static void ShowUsage(const char *progName);
 
 /***************************************************************************
 *                                FUNCTIONS
 ***************************************************************************/
 
-/****************************************************************************
+/***************************************************************************
 *   Function   : main
 *   Description: This is the main function for this program, it validates
 *                the command line input and, if valid, it will call
@@ -81,20 +69,21 @@ char *RemovePath(char *fullPath);
 *   Parameters : argc - number of parameters
 *                argv - parameter list
 *   Effects    : Encodes/Decodes input file
-*   Returned   : EXIT_SUCCESS for success, otherwise EXIT_FAILURE.
-****************************************************************************/
+*   Returned   : 0 for success, errno for failure.
+***************************************************************************/
 int main(int argc, char *argv[])
 {
-    option_t *optList, *thisOpt;
-    char *inFile, *outFile;  /* name of input & output files */
-    MODES mode;
-    unsigned char usePackBits;
+    option_t *optList;
+    option_t *thisOpt;
+    FILE *inFile;
+    FILE *outFile;
+    mode_t mode;
+    int result;
 
     /* initialize data */
     inFile = NULL;
     outFile = NULL;
-    mode = ENCODE;
-    usePackBits = 0;
+    mode = mode_none;
 
     /* parse command line */
     optList = GetOptList(argc, argv, "cdvi:o:h?");
@@ -105,93 +94,78 @@ int main(int argc, char *argv[])
         switch(thisOpt->option)
         {
             case 'c':       /* compression mode */
-                mode = ENCODE;
+                mode |= mode_encode_normal;
                 break;
 
             case 'd':       /* decompression mode */
-                mode = DECODE;
+                mode |= mode_decode_normal;
                 break;
 
             case 'v':       /* use packbits variant */
-                usePackBits = 1;
+                mode |= mode_packbits;
                 break;
 
             case 'i':       /* input file name */
                 if (inFile != NULL)
                 {
                     fprintf(stderr, "Multiple input files not allowed.\n");
-                    free(inFile);
+                    fclose(inFile);
 
                     if (outFile != NULL)
                     {
-                        free(outFile);
+                        fclose(outFile);
                     }
 
                     FreeOptList(optList);
-                    exit(EXIT_FAILURE);
+                    return EINVAL;
                 }
-                else if ((inFile =
-                    (char *)malloc(strlen(thisOpt->argument) + 1)) == NULL)
+                else if ((inFile = fopen(thisOpt->argument, "rb")) == NULL)
                 {
-                    perror("Memory allocation");
+                    perror("Opening Input File");
 
                     if (outFile != NULL)
                     {
-                        free(outFile);
+                        fclose(outFile);
                     }
 
                     FreeOptList(optList);
-                    exit(EXIT_FAILURE);
+                    return errno;
                 }
-
-                strcpy(inFile, thisOpt->argument);
                 break;
 
             case 'o':       /* output file name */
                 if (outFile != NULL)
                 {
                     fprintf(stderr, "Multiple output files not allowed.\n");
-                    free(outFile);
+                    fclose(outFile);
 
                     if (inFile != NULL)
                     {
-                        free(inFile);
+                        fclose(inFile);
                     }
 
                     FreeOptList(optList);
-                    exit(EXIT_FAILURE);
+                    return EINVAL;
                 }
-                else if ((outFile =
-                    (char *)malloc(strlen(thisOpt->argument) + 1)) == NULL)
+                else if ((outFile = fopen(thisOpt->argument, "wb")) == NULL)
                 {
-                    perror("Memory allocation");
+                    perror("Opening Output File");
 
                     if (inFile != NULL)
                     {
-                        free(inFile);
+                        fclose(inFile);
                     }
 
                     FreeOptList(optList);
-                    exit(EXIT_FAILURE);
+                    return errno;
                 }
-
-                strcpy(outFile, thisOpt->argument);
                 break;
 
             case 'h':
             case '?':
-                printf("Usage: %s <options>\n\n", RemovePath(argv[0]));
-                printf("options:\n");
-                printf("  -c : Encode input file to output file.\n");
-                printf("  -d : Decode input file to output file.\n");
-                printf("  -v : Use variant of packbits algorithm.\n");
-                printf("  -i <filename> : Name of input file.\n");
-                printf("  -o <filename> : Name of output file.\n");
-                printf("  -h | ?  : Print out command line options.\n\n");
-                printf("Default: sample -c\n");
-
+                ShowUsage(argv[0]);
                 FreeOptList(optList);
-                return(EXIT_SUCCESS);
+                return 0;
         }
 
         optList = thisOpt->next;
@@ -203,86 +177,76 @@ int main(int argc, char *argv[])
     if (inFile == NULL)
     {
         fprintf(stderr, "Input file must be provided\n");
-        fprintf(stderr, "Enter \"sample -?\" for help.\n");
+        ShowUsage(argv[0]);
 
         if (outFile != NULL)
         {
             free(outFile);
         }
 
-        exit (EXIT_FAILURE);
+        return EINVAL;
     }
     else if (outFile == NULL)
     {
         fprintf(stderr, "Output file must be provided\n");
-        fprintf(stderr, "Enter \"sample -?\" for help.\n");
+        ShowUsage(argv[0]);
 
         if (inFile != NULL)
         {
             free(inFile);
         }
 
-        exit (EXIT_FAILURE);
+        return EINVAL;
     }
 
     /* we have valid parameters encode or decode */
-    if (mode == ENCODE)
+    switch (mode)
     {
-        if (usePackBits)
-        {
-            VPackBitsEncodeFile(inFile, outFile);
-        }
-        else
-        {
-            RleEncodeFile(inFile, outFile);
-        }
-    }
-    else
-    {
-        if (usePackBits)
-        {
-            VPackBitsDecodeFile(inFile, outFile);
-        }
-        else
-        {
-            RleDecodeFile(inFile, outFile);
-        }
+        case mode_encode_normal:
+            result = RleEncodeFile(inFile, outFile);
+            break;
+
+        case mode_decode_normal:
+            result = RleDecodeFile(inFile, outFile);
+            break;
+
+        case mode_encode_packbits:
+            result = VPackBitsEncodeFile(inFile, outFile);
+            break;
+
+        case mode_decode_packbits:
+            result = VPackBitsDecodeFile(inFile, outFile);
+            break;
+
+        default:
+            fprintf(stderr, "Illegal encoding/decoding option\n");
+            ShowUsage(argv[0]);
+            result = EINVAL;
     }
 
-    free(inFile);
-    free(outFile);
-    return EXIT_SUCCESS;
+    fclose(inFile);
+    fclose(outFile);
+    return result;
 }
 
-/****************************************************************************
-*   Function   : RemovePath
-*   Description: This is function accepts a pointer to the name of a file
-*                along with path information and returns a pointer to the
-*                character that is not part of the path.
-*   Parameters : fullPath - pointer to an array of characters containing
-*                           a file name and possible path modifiers.
-*   Effects    : None
-*   Returned   : Returns a pointer to the first character after any path
-*                information.
-****************************************************************************/
-char *RemovePath(char *fullPath)
+/***************************************************************************
+*   Function   : ShowUsage
+*   Description: This function sends instructions for using this program to
+*                stdout.
+*   Parameters : progName - the name of the executable version of this
+*                           program.
+*   Effects    : Usage instructions are sent to stdout.
+*   Returned   : None
+***************************************************************************/
+static void ShowUsage(const char *progName)
 {
-    int i;
-    char *start, *tmp;                          /* start of file name */
-    const char delim[3] = {'\\', '/', ':'};     /* path deliminators */
-
-    start = fullPath;
-
-    /* find the first character after all file path delimiters */
-    for (i = 0; i < 3; i++)
-    {
-        tmp = strrchr(start, delim[i]);
-
-        if (tmp != NULL)
-        {
-            start = tmp + 1;
-        }
-    }
-
-    return start;
+    printf("Usage: %s <options>\n\n", FindFileName(progName));
+    printf("options:\n");
+    printf("  -c : Encode input file to output file.\n");
+    printf("  -d : Decode input file to output file.\n");
+    printf("  -v : Use variant of packbits algorithm.\n");
+    printf("  -i <filename> : Name of input file.\n");
+    printf("  -o <filename> : Name of output file.\n");
+    printf("  -h | ?  : Print out command line options.\n\n");
+    printf("Default: sample -c\n");
 }

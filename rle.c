@@ -11,20 +11,9 @@
 *   Date    : April 30, 2004
 *
 ****************************************************************************
-*   UPDATES
-*
-*   $Id: rle.c,v 1.2 2007/09/08 17:10:24 michael Exp $
-*   $Log: rle.c,v $
-*   Revision 1.2  2007/09/08 17:10:24  michael
-*   Changes required for LGPL v3.
-*
-*   Revision 1.1.1.1  2004/05/03 03:56:49  michael
-*   Initial version
-*
-****************************************************************************
 *
 * RLE: An ANSI C Run Length Encoding/Decoding Routines
-* Copyright (C) 2004, 2007 by
+* Copyright (C) 2004, 2007, 2015 by
 *       Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
 *
 * This file is part of the RLE library.
@@ -49,12 +38,11 @@
 ***************************************************************************/
 #include <stdio.h>
 #include <limits.h>
+#include <errno.h>
 
 /***************************************************************************
 *                                CONSTANTS
 ***************************************************************************/
-#define FALSE       0
-#define TRUE        1
 
 /***************************************************************************
 *                                FUNCTIONS
@@ -64,37 +52,24 @@
 *   Function   : RleEncodeFile
 *   Description: This routine reads an input file and writes out a run
 *                length encoded version of that file.
-*   Parameters : inFile - Name of file to encode
-*                outFile - Name of file to write encoded output to
+*   Parameters : inFile - Pointer to the file to encode
+*                outFile - Pointer to the file to write encoded output to
 *   Effects    : File is encoded using RLE
-*   Returned   : TRUE for success, otherwise FALSE.
+*   Returned   : 0 for success, -1 for failure.  errno will be set in the
+*                event of a failure.  Either way, inFile and outFile will
+*                be left open.
 ***************************************************************************/
-int RleEncodeFile(char *inFile, char *outFile)
+int RleEncodeFile(FILE *inFile, FILE *outFile)
 {
-    FILE *fpIn;                         /* uncoded input */
-    FILE *fpOut;                        /* encoded output */
-    int currChar, prevChar;             /* current and previous characters */
+    int currChar;                       /* current characters */
+    int prevChar;                       /* previous characters */
     unsigned char count;                /* number of characters in a run */
 
-    /* open input and output files */
-    if ((fpIn = fopen(inFile, "rb")) == NULL)
+    /* validate input and output files */
+    if ((NULL == inFile) || (NULL == outFile))
     {
-        perror(inFile);
-        return FALSE;
-    }
-
-    if (outFile == NULL)
-    {
-        fpOut = stdout;     /* default to stdout */
-    }
-    else
-    {
-        if ((fpOut = fopen(outFile, "wb")) == NULL)
-        {
-            fclose(fpIn);
-            perror(outFile);
-            return FALSE;
-        }
+        errno = ENOENT;
+        return -1;
     }
 
     /* encode inFile */
@@ -102,9 +77,9 @@ int RleEncodeFile(char *inFile, char *outFile)
     count = 0;
 
     /* read input until there's nothing left */
-    while ((currChar = fgetc(fpIn)) != EOF)
+    while ((currChar = fgetc(inFile)) != EOF)
     {
-        fputc(currChar, fpOut);
+        fputc(currChar, outFile);
 
         /* check for run */
         if (currChar == prevChar)
@@ -112,7 +87,7 @@ int RleEncodeFile(char *inFile, char *outFile)
             /* we have a run.  count run length */
             count = 0;
 
-            while ((currChar = fgetc(fpIn)) != EOF)
+            while ((currChar = fgetc(inFile)) != EOF)
             {
                 if (currChar == prevChar)
                 {
@@ -121,7 +96,7 @@ int RleEncodeFile(char *inFile, char *outFile)
                     if (count == UCHAR_MAX)
                     {
                         /* count is as long as it can get */
-                        fputc(count, fpOut);
+                        fputc(count, outFile);
 
                         /* force next char to be different */
                         prevChar = EOF;
@@ -131,8 +106,8 @@ int RleEncodeFile(char *inFile, char *outFile)
                 else
                 {
                     /* run ended */
-                    fputc(count, fpOut);
-                    fputc(currChar, fpOut);
+                    fputc(count, outFile);
+                    fputc(currChar, outFile);
                     prevChar = currChar;
                     break;
                 }
@@ -147,71 +122,54 @@ int RleEncodeFile(char *inFile, char *outFile)
         if (currChar == EOF)
         {
             /* run ended because of EOF */
-            fputc(count, fpOut);
+            fputc(count, outFile);
             break;
         }
     }
 
-    /* close all open files */
-    fclose(fpOut);
-    fclose(fpIn);
-
-    return TRUE;
+    return 0;
 }
 
 /***************************************************************************
 *   Function   : RleDecodeFile
 *   Description: This routine opens a run length encoded file, and decodes
 *                it to an output file.
-*   Parameters : inFile - Name of file to decode
-*                outFile - Name of file to write decoded output to
+*   Parameters : inFile - Pointer to the file to decode
+*                outFile - Pointer to the file to write decoded output to
 *   Effects    : Encoded file is decoded
-*   Returned   : TRUE for success, otherwise FALSE.
+*   Returned   : 0 for success, -1 for failure.  errno will be set in the
+*                event of a failure.  Either way, inFile and outFile will
+*                be left open.
 ***************************************************************************/
-int RleDecodeFile(char *inFile, char *outFile)
+int RleDecodeFile(FILE *inFile, FILE *outFile)
 {
-    FILE *fpIn;                         /* encoded input */
-    FILE *fpOut;                        /* uncoded output */
-    int currChar, prevChar;             /* current and previous characters */
+    int currChar;                       /* current characters */
+    int prevChar;                       /* previous characters */
     unsigned char count;                /* number of characters in a run */
 
-    /* open input and output files */
-    if ((fpIn = fopen(inFile, "rb")) == NULL)
+    /* validate input and output files */
+    if ((NULL == inFile) || (NULL == outFile))
     {
-        perror(inFile);
-        return FALSE;
-    }
-
-    if (outFile == NULL)
-    {
-        fpOut = stdout;     /* default to stdout */
-    }
-    else
-    {
-        if ((fpOut = fopen(outFile, "wb")) == NULL)
-        {
-            fclose(fpIn);
-            perror(outFile);
-            return FALSE;
-        }
+        errno = ENOENT;
+        return -1;
     }
 
     /* decode inFile */
     prevChar = EOF;     /* force next char to be different */
 
     /* read input until there's nothing left */
-    while ((currChar = fgetc(fpIn)) != EOF)
+    while ((currChar = fgetc(inFile)) != EOF)
     {
-        fputc(currChar, fpOut);
+        fputc(currChar, outFile);
 
         /* check for run */
         if (currChar == prevChar)
         {
             /* we have a run.  write it out. */
-            count = fgetc(fpIn);
+            count = fgetc(inFile);
             while (count > 0)
             {
-                fputc(currChar, fpOut);
+                fputc(currChar, outFile);
                 count--;
             }
 
@@ -224,9 +182,5 @@ int RleDecodeFile(char *inFile, char *outFile)
         }
     }
 
-    /* close all open files */
-    fclose(fpOut);
-    fclose(fpIn);
-
-    return TRUE;
+    return 0;
 }

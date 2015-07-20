@@ -15,28 +15,9 @@
 *   Date    : September 7, 2006
 *
 ****************************************************************************
-*   UPDATES
-*
-*   $Id: vpackbits.c,v 1.4 2007/09/08 17:12:27 michael Exp $
-*   $Log: vpackbits.c,v $
-*   Revision 1.4  2007/09/08 17:12:27  michael
-*   Corrected error decoding maximum length runs.
-*   Replace getopt with optlist.
-*   Changes required for LGPL v3.
-*
-*   Revision 1.3  2007/02/13 05:29:43  michael
-*   trimmed spaces.
-*
-*   Revision 1.2  2006/09/20 13:13:30  michael
-*   Minor modifications to look more like description on my web page.
-*
-*   Revision 1.1  2006/09/10 05:12:57  michael
-*   Initial release
-*
-****************************************************************************
 *
 * VPackBits: ANSI C PackBits Style Run Length Encoding/Decoding Routines
-* Copyright (C) 2006-2007 by
+* Copyright (C) 2006-2007, 2015 by
 *       Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
 *
 * This file is part of the RLE library.
@@ -61,13 +42,11 @@
 ***************************************************************************/
 #include <stdio.h>
 #include <limits.h>
+#include <errno.h>
 
 /***************************************************************************
 *                                CONSTANTS
 ***************************************************************************/
-#define FALSE       0
-#define TRUE        1
-
 #define MIN_RUN     3                   /* minimum run length to encode */
 #define MAX_RUN     (128 + MIN_RUN - 1) /* maximum run length to encode */
 #define MAX_COPY    128                 /* maximum characters to copy */
@@ -84,42 +63,28 @@
 *   Description: This routine reads an input file and writes out a run
 *                length encoded version of that file.  The technique used
 *                is a variation of the packbits technique.
-*   Parameters : inFile - Name of file to encode
-*                outFile - Name of file to write encoded output to
+*   Parameters : inFile - Pointer to the file to encode
+*                outFile - Pointer to the file to write encoded output to
 *   Effects    : File is encoded using RLE
-*   Returned   : TRUE for success, otherwise FALSE.
+*   Returned   : 0 for success, -1 for failure.  errno will be set in the
+*                event of a failure.  Either way, inFile and outFile will
+*                be left open.
 ***************************************************************************/
-int VPackBitsEncodeFile(char *inFile, char *outFile)
+int VPackBitsEncodeFile(FILE *inFile, FILE *outFile)
 {
-    FILE *fpIn;                         /* uncoded input */
-    FILE *fpOut;                        /* encoded output */
     int currChar;                       /* current character */
     unsigned char charBuf[MAX_READ];    /* buffer of already read characters */
     unsigned char count;                /* number of characters in a run */
 
-    /* open input and output files */
-    if ((fpIn = fopen(inFile, "rb")) == NULL)
+    /* validate input and output files */
+    if ((NULL == inFile) || (NULL == outFile))
     {
-        perror(inFile);
-        return FALSE;
-    }
-
-    if (outFile == NULL)
-    {
-        fpOut = stdout;     /* default to stdout */
-    }
-    else
-    {
-        if ((fpOut = fopen(outFile, "wb")) == NULL)
-        {
-            fclose(fpIn);
-            perror(outFile);
-            return FALSE;
-        }
+        errno = ENOENT;
+        return -1;
     }
 
     /* prime the read loop */
-    currChar = fgetc(fpIn);
+    currChar = fgetc(inFile);
     count = 0;
 
     /* read input until there's nothing left */
@@ -152,16 +117,16 @@ int VPackBitsEncodeFile(char *inFile, char *outFile)
                 if (count > MIN_RUN)
                 {
                     /* block size - 1 followed by contents */
-                    fputc(count - MIN_RUN - 1, fpOut);
+                    fputc(count - MIN_RUN - 1, outFile);
                     fwrite(charBuf, sizeof(unsigned char), count - MIN_RUN,
-                        fpOut);
+                        outFile);
                 }
 
 
                 /* determine run length (MIN_RUN so far) */
                 count = MIN_RUN;
 
-                while ((nextChar = fgetc(fpIn)) == currChar)
+                while ((nextChar = fgetc(inFile)) == currChar)
                 {
                     count++;
                     if (MAX_RUN == count)
@@ -172,8 +137,8 @@ int VPackBitsEncodeFile(char *inFile, char *outFile)
                 }
 
                 /* write out encoded run length and run symbol */
-                fputc((char)((int)(MIN_RUN - 1) - (int)(count)), fpOut);
-                fputc(currChar, fpOut);
+                fputc((char)((int)(MIN_RUN - 1) - (int)(count)), outFile);
+                fputc(currChar, outFile);
 
                 if ((nextChar != EOF) && (count != MAX_RUN))
                 {
@@ -194,8 +159,8 @@ int VPackBitsEncodeFile(char *inFile, char *outFile)
             int i;
 
             /* write out buffer */
-            fputc(MAX_COPY - 1, fpOut);
-            fwrite(charBuf, sizeof(unsigned char), MAX_COPY, fpOut);
+            fputc(MAX_COPY - 1, outFile);
+            fwrite(charBuf, sizeof(unsigned char), MAX_COPY, outFile);
 
             /* start a new buffer */
             count = MAX_READ - MAX_COPY;
@@ -207,7 +172,7 @@ int VPackBitsEncodeFile(char *inFile, char *outFile)
             }
         }
 
-        currChar = fgetc(fpIn);
+        currChar = fgetc(inFile);
     }
 
     /* write out last buffer */
@@ -216,27 +181,23 @@ int VPackBitsEncodeFile(char *inFile, char *outFile)
         if (count <= MAX_COPY)
         {
             /* write out entire copy buffer */
-            fputc(count - 1, fpOut);
-            fwrite(charBuf, sizeof(unsigned char), count, fpOut);
+            fputc(count - 1, outFile);
+            fwrite(charBuf, sizeof(unsigned char), count, outFile);
         }
         else
         {
             /* we read more than the maximum for a single copy buffer */
-            fputc(MAX_COPY - 1, fpOut);
-            fwrite(charBuf, sizeof(unsigned char), MAX_COPY, fpOut);
+            fputc(MAX_COPY - 1, outFile);
+            fwrite(charBuf, sizeof(unsigned char), MAX_COPY, outFile);
 
             /* write out remainder */
             count -= MAX_COPY;
-            fputc(count - 1, fpOut);
-            fwrite(&charBuf[MAX_COPY], sizeof(unsigned char), count, fpOut);
+            fputc(count - 1, outFile);
+            fwrite(&charBuf[MAX_COPY], sizeof(unsigned char), count, outFile);
         }
     }
 
-    /* close all open files */
-    fclose(fpOut);
-    fclose(fpIn);
-
-    return TRUE;
+    return 0;
 }
 
 /***************************************************************************
@@ -244,43 +205,29 @@ int VPackBitsEncodeFile(char *inFile, char *outFile)
 *   Description: This routine opens a file encoded by a variant of the
 *                packbits run length encoding, and decodes it to an output
 *                file.
-*   Parameters : inFile - Name of file to decode
-*                outFile - Name of file to write decoded output to
+*   Parameters : inFile - Pointer to the file to decode
+*                outFile - Pointer to the file to write decoded output to
 *   Effects    : Encoded file is decoded
-*   Returned   : TRUE for success, otherwise FALSE.
+*   Returned   : 0 for success, -1 for failure.  errno will be set in the
+*                event of a failure.  Either way, inFile and outFile will
+*                be left open.
 ***************************************************************************/
-int VPackBitsDecodeFile(char *inFile, char *outFile)
+int VPackBitsDecodeFile(FILE *inFile, FILE *outFile)
 {
-    FILE *fpIn;                         /* encoded input */
-    FILE *fpOut;                        /* uncoded output */
     int countChar;                      /* run/copy count */
     int currChar;                       /* current character */
 
-    /* open input and output files */
-    if ((fpIn = fopen(inFile, "rb")) == NULL)
+    /* validate input and output files */
+    if ((NULL == inFile) || (NULL == outFile))
     {
-        perror(inFile);
-        return FALSE;
-    }
-
-    if (outFile == NULL)
-    {
-        fpOut = stdout;     /* default to stdout */
-    }
-    else
-    {
-        if ((fpOut = fopen(outFile, "wb")) == NULL)
-        {
-            fclose(fpIn);
-            perror(outFile);
-            return FALSE;
-        }
+        errno = ENOENT;
+        return -1;
     }
 
     /* decode inFile */
 
     /* read input until there's nothing left */
-    while ((countChar = fgetc(fpIn)) != EOF)
+    while ((countChar = fgetc(inFile)) != EOF)
     {
         countChar = (char)countChar;    /* force sign extension */
 
@@ -289,7 +236,7 @@ int VPackBitsDecodeFile(char *inFile, char *outFile)
             /* we have a run write out  2 - countChar copies */
             countChar = (MIN_RUN - 1) - countChar;
 
-            if (EOF == (currChar = fgetc(fpIn)))
+            if (EOF == (currChar = fgetc(inFile)))
             {
                 fprintf(stderr, "Run block is too short!\n");
                 countChar = 0;
@@ -297,7 +244,7 @@ int VPackBitsDecodeFile(char *inFile, char *outFile)
 
             while (countChar > 0)
             {
-                fputc(currChar, fpOut);
+                fputc(currChar, outFile);
                 countChar--;
             }
         }
@@ -306,9 +253,9 @@ int VPackBitsDecodeFile(char *inFile, char *outFile)
             /* we have a block of countChar + 1 symbols to copy */
             for (countChar++; countChar > 0; countChar--)
             {
-                if ((currChar = fgetc(fpIn)) != EOF)
+                if ((currChar = fgetc(inFile)) != EOF)
                 {
-                    fputc(currChar, fpOut);
+                    fputc(currChar, outFile);
                 }
                 else
                 {
@@ -319,9 +266,5 @@ int VPackBitsDecodeFile(char *inFile, char *outFile)
         }
     }
 
-    /* close all open files */
-    fclose(fpOut);
-    fclose(fpIn);
-
-    return TRUE;
+    return 0;
 }

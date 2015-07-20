@@ -8,24 +8,9 @@
 *   Date    : April 30, 2004
 *
 ****************************************************************************
-*   UPDATES
-*
-*   $Id: rle.h,v 1.3 2007/09/08 17:10:24 michael Exp $
-*   $Log: rle.h,v $
-*   Revision 1.3  2007/09/08 17:10:24  michael
-*   Changes required for LGPL v3.
-*
-*   Revision 1.2  2006/09/10 05:08:36  michael
-*   Add prototypes for variant packbits algorithm.
-*
-*   Revision 1.1.1.1  2004/05/03 03:56:49  michael
-*   Initial version
-*
-*
-****************************************************************************
 *
 * RLE: An ANSI C Run Length Encoding/Decoding Routines
-* Copyright (C) 2004, 2006-2007 by
+* Copyright (C) 2004, 2006-2007, 2015 by
 *       Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
 *
 * This file is part of the RLE library.
@@ -53,11 +38,11 @@
 ***************************************************************************/
 
 /* traditional RLE encodeing/decoding */
-int RleEncodeFile(char *inFile, char *outFile);
-int RleDecodeFile(char *inFile, char *outFile);
+int RleEncodeFile(FILE *inFile, FILE *outFile);
+int RleDecodeFile(FILE *inFile, FILE *outFile);
 
 /* variant of packbits RLE encodeing/decoding */
-int VPackBitsEncodeFile(char *inFile, char *outFile);
-int VPackBitsDecodeFile(char *inFile, char *outFile);
+int VPackBitsEncodeFile(FILE *inFile, FILE *outFile);
+int VPackBitsDecodeFile(FILE *inFile, FILE *outFile);
 
 #endif  /* ndef _RLE_H_ */
