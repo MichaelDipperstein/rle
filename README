@@ -108,7 +108,7 @@ HISTORY
           - Replaces getopt() with optlist library.
           - Corrects bug in packbits style compression that occurs with
             maximum length runs.
-07/18/15  - Changed the API so that encode and decode routines accept opened
+07/19/15  - Changed the API so that encode and decode routines accept opened
             file streams instead of file names.
           - Changed return value to 0 for success and -1 for failure with
             reason in errno.
@@ -117,7 +117,7 @@ HISTORY
 
 TODO
 ----
-- Add an option to very the size of the symbol being encoded.
+- Add an option to vary the size of the symbol being encoded.
 
 AUTHOR
 ------
