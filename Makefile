@@ -7,7 +7,7 @@ CFLAGS = -O3 -Wall -Wextra -pedantic -ansi -c
 LDFLAGS = -O3 -o
 
 # libraries
-LIBS = -L. -lrle -loptlist
+LIBS = -L. -Loptlist -lrle -loptlist
 
 # Treat NT and non-NT windows the same
 ifeq ($(OS),Windows_NT)
@@ -24,10 +24,10 @@ endif
 
 all:		sample$(EXE)
 
-sample$(EXE):	sample.o librle.a liboptlist.a
+sample$(EXE):	sample.o librle.a optlist/liboptlist.a
 		$(LD) $< $(LIBS) $(LDFLAGS) $@
 
-sample.o:	sample.c rle.h optlist.h
+sample.o:	sample.c rle.h optlist/optlist.h
 		$(CC) $(CFLAGS) $<
 
 librle.a:	rle.o vpackbits.o
@@ -40,14 +40,11 @@ rle.o:		rle.c
 vpackbits.o:	vpackbits.c
 		$(CC) $(CFLAGS) $<
 
-liboptlist.a:	optlist.o
-		ar crv $@ $^
-		ranlib $@
-
-optlist.o:	optlist.c optlist.h
-		$(CC) $(CFLAGS) $<
+optlist/liboptlist.a:
+		cd optlist && $(MAKE) liboptlist.a
 
 clean:
 		$(DEL) *.o
 		$(DEL) *.a
 		$(DEL) sample$(EXE)
+		cd optlist && $(MAKE) clean

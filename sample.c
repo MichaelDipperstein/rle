@@ -9,7 +9,7 @@
 ****************************************************************************
 *
 * SAMPLE: Sample usage of Run Length Encoding Library
-* Copyright (C) 2004, 2006-2007, 2015 by
+* Copyright (C) 2004, 2006-2007, 2015, 2017 by
 *       Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
 *
 * This file is part of the RLE library.
@@ -35,7 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "optlist.h"
+#include "optlist/optlist.h"
 #include "rle.h"
 
 /***************************************************************************

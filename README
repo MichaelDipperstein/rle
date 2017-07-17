@@ -20,15 +20,12 @@ block of up symbols that is not a run.
 
 More information on run length encoding may be found at:
 http://michael.dipperstein.com/rle
-http://www.datacompression.info/RLE.shtml
 
 FILES
 -----
 COPYING         - Rules for copying and distributing GPL software
 COPYING.LESSER  - Rules for copying and distributing LGPL software
 Makefile        - makefile for this project (assumes gcc compiler and GNU make)
-optlist.c       - Source code for GetOptlist function and supporting functions
-optlist.h       - Header file to be included by code using the optlist library
 README          - this file
 rle.c           - Library of run length encoding and decoding routines.
 rle.h           - Header containing prototypes for library functions.
@@ -36,6 +33,7 @@ sample.c        - Demonstration of how to use run length encoding library
                   functions
 vpackbits.c     - Implementation of a variant of the packbits encoding and
                   decoding algorithm
+optlist/        - Subtree containing optlist command line option parser library
 
 BUILDING
 --------
@@ -114,6 +112,7 @@ HISTORY
             reason in errno.
           - Upgraded to latest oplist and bitfile libraries.
           - Tighter adherence to Michael Barr's "Top 10 Bug-Killing Coding
+07/16/17  - Changes for cleaner use with GitHub
 
 TODO
 ----
