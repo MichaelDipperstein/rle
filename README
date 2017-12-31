@@ -19,7 +19,7 @@ in a run 2 - count long.  This method incurs a one byte penalty for every
 block of up symbols that is not a run.
 
 More information on run length encoding may be found at:
-http://michael.dipperstein.com/rle
+https://michaeldipperstein.github.io/rle.html
 
 FILES
 -----
@@ -121,4 +121,4 @@ TODO
 AUTHOR
 ------
 Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
-http://michael.dipperstein.com
+https://michaeldipperstein.github.io/index.html
