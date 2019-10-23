@@ -35,6 +35,10 @@ vpackbits.c     - Implementation of a variant of the packbits encoding and
                   decoding algorithm
 optlist/        - Subtree containing optlist command line option parser library
 
+GIT NOTE: Updates to optlist subtree don't get pulled by "git pull"
+Use the following commands to pull its updates:
+git subtree pull --prefix optlist https://github.com/MichaelDipperstein/optlist.git master --squash
+
 BUILDING
 --------
 To build these files with GNU make and gcc, simply enter "make" from the
@@ -120,5 +124,5 @@ TODO
 
 AUTHOR
 ------
-Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
+Michael Dipperstein (mdipperstein@gmail.com)
 https://michaeldipperstein.github.io/index.html

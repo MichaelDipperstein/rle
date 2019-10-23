@@ -14,7 +14,7 @@
 *
 * RLE: An ANSI C Run Length Encoding/Decoding Routines
 * Copyright (C) 2004, 2007, 2015 by
-*       Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
+*       Michael Dipperstein (mdipperstein@gmail.com)
 *
 * This file is part of the RLE library.
 *
